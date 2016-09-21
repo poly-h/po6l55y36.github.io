@@ -248,7 +248,7 @@ function drawImage(c, img, x, y, width, height) {
 
 function loadImage(path, name) {
   images[name] = new Image();
-  images[name].src = path;
+  images[name].src = "img/" + path;
 }
 
 function rgba(c, r, g, b, a) {
