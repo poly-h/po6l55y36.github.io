@@ -95,7 +95,7 @@ var honkan = (function() {
       height = width / 5 * 4;
       dx = 0;
       dy = 0;
-      hp = 150;
+      hp = 120;
       destrotime = 0;
       destroyed = false;
     },
@@ -182,6 +182,7 @@ var foccatio = function(x1, y1, vx1, vy1){
     },
     destroy : function() {
       explode = true;
+      exps.add(x, y, r, r*2/3, 0.6, 1);
     },
     getDead : function() {
       return dead;
@@ -210,7 +211,7 @@ var fo = (function() {
       spawnwait -= delta;
       if(spawnwait < 0) {
         fo.generate(Math.random()*400-200, 600, Math.random() - 0.5, -0.2 - Math.random()*4);
-        spawnwait = Math.random() * 0.25 + 0.1
+        spawnwait = Math.random() * 0.25 + 0.12
       }
 
       var newList = [];
