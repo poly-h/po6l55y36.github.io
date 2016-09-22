@@ -9,6 +9,7 @@ var time = 0;
 var delta = 0;
 // 0:title, 1:play, 2:gameover, 3:clear
 var scene = 0;
+var gdr = 0;
 
 var mzut = (function() {
   var x;
@@ -17,6 +18,7 @@ var mzut = (function() {
   var vx;
   var hp;
   var destrotime;
+  var destroyed;
   return {
     init : function() {
       x = 0;
@@ -25,6 +27,7 @@ var mzut = (function() {
       vx = size/8;
       hp = 1;
       destrotime = 0;
+      destroyed = false;
     },
     draw : function(c) {
       if(hp > 0)
@@ -45,9 +48,14 @@ var mzut = (function() {
         x += vx;
       }
       if(hp <= 0) {
-      if(destrotime > 0.1) {
-        fo.destroy();
-      }
+        if(!destroyed) {
+          destroyed = true;
+          exps.add(x, y, 100, 20, 2, 3);
+          gdr = 100;
+        }
+        if(destrotime > 0.1) {
+          fo.destroy();
+        }
         destrotime += delta;
         if(destrotime > 3.0) {
           scene = 2;
@@ -77,6 +85,7 @@ var honkan = (function() {
   var dy;
   var hp;
   var destrotime;
+  var destroyed;
   return {
     init : function() {
       explodetime = 0;
@@ -86,19 +95,13 @@ var honkan = (function() {
       height = width / 5 * 4;
       dx = 0;
       dy = 0;
-      hp = 200;
+      hp = 100;
       destrotime = 0;
+      destroyed = false;
     },
     draw : function(c) {
       if(destrotime < 0.5)
         drawImage(c, "honkan", x-width/2+dx, y-height/2+dy, width, height);
-      if(hp <= 0 && destrotime < 2) {
-        rgba(c, 250, 20, 0, 0.9);
-        var exr = 50 + 400 * Math.abs(Math.sin(destrotime * Math.PI));
-        c.beginPath();
-        c.arc(x, y, exr, 0, Math.PI*2, false);
-        c.fill();
-      }
     },
     update : function() {
       if(explodetime > 0) {
@@ -113,6 +116,11 @@ var honkan = (function() {
       }
       if(hp <= 0) {
         destrotime += delta;
+        if(!destroyed) {
+          destroyed = true;
+          exps.add(x, y, 400, 50, 2, 2);
+          gdr = 200;
+        }
         if(destrotime > 0.1) {
           fo.destroy();
         }
@@ -137,20 +145,19 @@ var foccatio = function(x1, y1, vx1, vy1){
   var dead = false;
   var explode = false;
   var explodetime = 0;
+  var rotate = Math.random() * 10;
   var collision = function() {
     var dist = (x-mzut.shape().x)*(x-mzut.shape().x) + (y-mzut.shape().y)*(y-mzut.shape().y);
     return (dist < (r+mzut.shape().size)*(r+mzut.shape().size));
   };
   return {
     draw : function(c) {
-      if(explodetime < 0.01)
-        drawImage(c, "foccatio", x - r, y - r, r*2, r*2);
-      if(explode) {
-        rgba(c, 250, 20, 0, 0.8);
-        var exr = r/2 + r * Math.abs(Math.sin(explodetime * Math.PI /6*10));
-        c.beginPath();
-        c.arc(x, y, exr, 0, Math.PI*2, false);
-        c.fill();
+      if(explodetime < 0.01){
+        c.translate(x, y);
+        c.rotate(time*rotate);
+        drawImage(c, "foccatio", -r, -r, r*2, r*2);
+        c.rotate(-time*rotate);
+        c.translate(-x, -y);
       }
     },
     update : function() {
@@ -161,6 +168,7 @@ var foccatio = function(x1, y1, vx1, vy1){
       if(y < 30 && !explode) {
         explode = true;
         honkan.setExtime();
+        exps.add(x, y, r, r*2/3, 0.6, 1);
       }
       if(explode) {
         explodetime += delta;
@@ -202,7 +210,7 @@ var fo = (function() {
       spawnwait -= delta;
       if(spawnwait < 0) {
         fo.generate(Math.random()*400-200, 600, Math.random() - 0.5, -0.2 - Math.random()*4);
-        spawnwait = Math.random() * 0.3 + 0.1
+        spawnwait = Math.random() * 0.25 + 0.1
       }
 
       var newList = [];
@@ -216,6 +224,55 @@ var fo = (function() {
     }
   }
 })();
+
+var explosion = function(x1, y1, r1, minr1, t1, n1) {
+  var x = x1;
+  var y = y1;
+  var r = r1;
+  var minr = minr1;
+  var timelimit = t1;
+  var n = n1;
+  var t = 0;
+  return {
+    draw : function(c) {
+      rgba(c, 250, 20, 0, 0.8);
+      var exr = minr + r * Math.abs(Math.sin(t / timelimit * Math.PI * n));
+      c.beginPath();
+      c.arc(x, y, exr, 0, Math.PI*2, false);
+      c.fill();
+    },
+    update : function() {
+      t += delta;
+    },
+    getDead : function() {
+      return (t > timelimit);
+    }
+  }
+}
+var exps = (function() {
+  var list = [];
+  return {
+    add : function(x1, y1, r1, minr1, t1, n1) {
+      list.push(explosion(x1, y1, r1, minr1, t1, n1));
+    },
+    draw : function(c) {
+      list.forEach(function(value){
+        value.draw(c);
+      });
+    },
+    update : function(){
+      var newList = [];
+      list.forEach(function(value){
+        value.update();
+        if(!value.getDead()) {
+          newList.push(value);
+        }
+      });
+      list = newList;
+    }
+  }
+})();
+
 var key = (function() {
   var state = [];
   return {
@@ -286,11 +343,17 @@ function update(timestamp) {
   delta = timestamp / 1000 - time;
   time = timestamp / 1000;
 
+  gdr *= 0.95;
+  if(gdr < 0.01) {
+    gdr = 0;
+  }
+
   render(canvas);
   requestAnimationFrame(update);
 
   mzut.update();
   honkan.update();
+  exps.update();
   if(scene == 0) {
     if(key.get(keySpace))
       scene = 1;
@@ -319,11 +382,14 @@ function render(c) {
   c.clearRect(0, 0, canvas.width, canvas.height);
   c.fillStyle = 'rgb(0, 0, 0)';
   c.fillRect(0, 0, cWidth, cHeight);
-  c.transform(cWidth/200, 0, 0, -cWidth/200, cWidth/2, cHeight);
+  var gdx = (Math.random() - 0.5) * 2 * gdr;
+  var gdy = (Math.random() - 0.5) * 2 * gdr;
+  c.transform(cWidth/200, 0, 0, -cWidth/200, cWidth/2 + gdx, cHeight + gdy);
   drawImage(c, "haikei", -100, 0, 200, 256);
 
   mzut.draw(c);
   honkan.draw(c);
+  exps.draw(c);
   if(scene == 0){
     drawImage(c, "title", -95-Math.cos(time*2)*3, Math.sin(time*2)*5+10, 200+Math.cos(time*2)*6, 240);
     drawImage(c, "next", -10, 15+Math.sin(time*4.2)*5, 100, 20);
@@ -331,7 +397,7 @@ function render(c) {
     c.rotate(time*2);
     drawImage(c, "foccatio", -25, -25, 50, 50);
     c.rotate(-time*2);
-    c.translate(64, 200);
+    c.translate(64, -200);
   }
   if(scene == 1)
     fo.draw(c);
