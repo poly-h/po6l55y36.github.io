@@ -95,7 +95,7 @@ var honkan = (function() {
       height = width / 5 * 4;
       dx = 0;
       dy = 0;
-      hp = 100;
+      hp = 150;
       destrotime = 0;
       destroyed = false;
     },
